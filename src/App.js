@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useState, useEffect} from 'react'
 import logo from './logo.svg';
 import './App.css';
 
@@ -8,56 +8,98 @@ const ALLLJOKESBYKEYWORD = 'https://api.chucknorris.io/jokes/search?query=' // r
 const launchErrorAlert = () => setTimeout(() => window.alert('errore!'), 500) 
 
 // classe 'App-logo-spinning' durante il caricamento, altrimenti classe 'App-logo'
-const Logo = ({ loading }) => {
+const Logo = ({loading }) => {
   return (
     <img
       src={logo}
       alt='interactive-logo'
-      // ... 
+      className={`App-logo${loading ? '-spinning' : ''}`}
     />
   )
 }
 
-const Joke = ({ value, categories }) => {
-  return null
-  // <div className="Joke">
-  //   <code className="Joke-Value">{value}</code>
-  //     per ciascun elemento di 'categories', renderizzare:
-  //     <span className="Selected-Cat" ... >
-  //       <code>{* QUI LA STRINGA DELLA SINGOLA CATEGORIA *}</code>
-  //     </span>
-  // </div>
-}
+const Joke = ({value,categories}) => {
+  return (
+  <div className="Joke">
+      <code className="Joke-Value">{value}</code>
+      <p> categories: 
+        {categories.map((category, index) =>
+          <span className="Selected-Cat" key={`cat-${index}`}>
+             <code>{category}</code>
+          </span>)}
+      </p>
+  </div> 
+)}
 
-// class App extends React.Component {
+
 function App() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError]=useState(false)
+  const [inputValue, setInputValue] = useState("");
+  const [currentJoke, setCurrentJoke] = useState({});
+
+  
   // qui tutto ciò che serve al componente per essere inizializzato
 
   // getJokeByKeyword
   // funzione che recupera le barzellette contenenti la parola chiave
   // digitata nel campo di testo
+  const getJokeByKeyword = async () => {
+    let currentJoke={}
+    let error = false
+
+    try {
+      setLoading(true)
+
+      const response = await fetch(`${ALLLJOKESBYKEYWORD}${inputValue}`)
+      const data = await response.json()
+
+      console.log("DATA:", data)
+
+      if(data && data.status) throw new Error("invalid keyword")
+      if (data && data.result.length === 0) throw new Error("no result")
+
+      currentJoke = {...data.result[0]}
+      
+    } catch (err) {
+      error=true
+      console.log("ECCOMI:", err)
+      
+    } finally { 
+        setLoading(false)  
+        setCurrentJoke(currentJoke)
+        setError(error)
+    } 
+  }
 
   // onInputTextChange
-  // handler per l'input di testo
+  const onInputTextChange = (event) => {
+    setInputValue(event.target.value)
+  }
 
   // qui i lifecycle methods
+  useEffect(() => {
+    if (error) launchErrorAlert()}, [error])
+
 
   // render () {
     return (
       <div className="App">
         <div className="App-header">
-          <Logo
-            // ...
+          <Logo loading={loading}
           />
           <input
             type="search"
-            id="search" name="search"
+            id="search" 
+            name="search"
             placeholder="Enter keyword here"
-            // ...
+            onChange={onInputTextChange}
+            value={inputValue}
           />
           <button
             className="Search-Button"
-            // ...
+            onClick={getJokeByKeyword}
+            disabled={loading}
           >
             <code>CLICK TO SEARCH!</code>
           </button>
@@ -68,14 +110,14 @@ function App() {
             className="Chuck-Logo"
             alt="chuck-logo"
           />
-          {/* <Joke ... /> */}
+          {Object.keys(currentJoke).length > 0 && <Joke {...currentJoke} />}
         </div>
         <div className="footer">
-        <code>Esame di React per cfp-futura. Grazie ad <a href="https://api.chucknorris.io">api.chucknorris.io</a> per l'immagine e le api. Docente: Vito Vitale. Studente: </code>
+        <code>Esame di React per cfp-futura. Grazie ad <a href="https://api.chucknorris.io">api.chucknorris.io</a> per l'immagine e le api. Docente: Vito Vitale. Studente: Mariella Renzelli </code>
         </div>
       </div>
     );
-  // }
+
 };
 
 export default App;
